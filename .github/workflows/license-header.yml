@@ -1,0 +1,77 @@
+# Copyright 2024 Koushik Mondal (github.com/raptar231)
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+name: "Add License Headers"
+on:
+  push:
+    branches:
+      - master
+  workflow_dispatch:
+    inputs:
+      mode:
+        type: choice
+        description: 'Mode for the license header action'
+        required: false
+        default: 'fix'
+        options:
+          - fix
+          - check
+      commit-message:
+        description: 'Commit message for the license header changes'
+        type: string
+        required: false
+        default: 'chore: add license headers to source files'
+      title:
+        type: string
+        description: 'Title for the pull request'
+        required: false
+        default: 'chore: add license headers to source files'
+      body:
+        type: string
+        description: 'Body for the pull request'
+        required: false
+        default: 'This PR adds Apache license headers to all applicable source files.'
+
+permissions:
+  contents: read
+
+jobs:
+  license:
+    name: "Add License Headers"
+    permissions:
+      contents: write
+      pull-requests: write
+    runs-on: ubuntu-latest
+    steps:
+      - name: "Checkout code"
+        uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+
+      - name: "Fix License Headers"
+        continue-on-error: true
+        uses: apache/skywalking-eyes/header@v0.8.0
+        with:
+          mode: ${{ inputs.mode || 'fix' }}
+
+      - name: "Create Pull Request"
+        if: inputs.mode == 'fix' || github.event_name == 'push'
+        uses: peter-evans/create-pull-request@v8
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          commit-message: "${{ inputs.commit-message || 'chore: add license headers to source files' }}"
+          title: "${{ inputs.title || 'chore: add license headers to source files' }}"
+          body: "${{ inputs.body || 'This PR adds Apache license headers to all applicable source files.' }}"
+          branch: add-license-headers
+          base: master

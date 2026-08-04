@@ -1,0 +1,104 @@
+# Copyright 2024 Koushik Mondal (github.com/raptar231)
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+site_name: indian-bank-statement-parser
+site_description: Parse Indian bank statement PDFs to structured CSV/JSON for GST reconciliation, accounting, and lending workflows.
+site_author: Koushik Mondal (github.com/raptar231)
+site_url: https://raptar231.github.io/indian-bank-statement-parser/
+repo_url: https://github.com/raptar231/indian-bank-statement-parser
+repo_name: raptar231/indian-bank-statement-parser
+edit_uri: edit/master/docs/
+
+theme:
+  name: material
+  palette:
+    - scheme: default
+      primary: indigo
+      accent: indigo
+      toggle:
+        icon: material/brightness-7
+        name: Switch to dark mode
+    - scheme: slate
+      primary: indigo
+      accent: indigo
+      toggle:
+        icon: material/brightness-4
+        name: Switch to light mode
+  features:
+    - navigation.tabs
+    - navigation.sections
+    - navigation.top
+    - search.highlight
+    - search.share
+    - content.code.copy
+    - content.code.annotate
+
+nav:
+  - Home: index.md
+  - Getting Started:
+      - Quickstart: getting_started/quickstart.md
+      - Installation: getting_started/installation.md
+      - Why not Bank CSV?: getting_started/why-not-bank-csv.md
+  - User Guide:
+      - CLI Reference: user_guide/cli.md
+      - Python API: user_guide/python_api.md
+      - Supported Banks: user_guide/banks.md
+      - Output Schema: user_guide/schema.md
+      - GSTR-2A Reconciliation: user_guide/gstr2a.md
+  - Developer Guide:
+      - Adding a Bank Parser: developer_guide/adding_bank.md
+      - Architecture: developer_guide/architecture.md
+      - Testing: developer_guide/testing.md
+  - Deployment:
+      - Docker: deployment/docker.md
+      - GitHub Actions: deployment/github_actions.md
+      - GitHub Pages: deployment/github_pages.md
+      - PyPI Release: deployment/pypi_release.md
+  - Contributing: contributing.md
+  - Changelog: changelog.md
+
+markdown_extensions:
+  - admonition
+  - pymdownx.details
+  - pymdownx.superfences
+  - pymdownx.tabbed:
+      alternate_style: true
+  - pymdownx.highlight:
+      anchor_linenums: true
+  - pymdownx.inlinehilite
+  - attr_list
+  - md_in_html
+  - tables
+  - toc:
+      permalink: true
+
+plugins:
+  - search
+  - mkdocstrings:
+      handlers:
+        python:
+          paths: [bank_parser]
+
+extra:
+  version:
+    provider: mike
+  social:
+    - icon: fontawesome/brands/github
+      link: https://github.com/raptar231/indian-bank-statement-parser
+    - icon: fontawesome/brands/python
+      link: https://pypi.org/project/indian-bank-statement-parser/
+    - icon: fontawesome/brands/docker
+      link: https://github.com/raptar231/indian-bank-statement-parser/pkgs/container/indian-bank-statement-parser
+
+copyright: Copyright &copy; 2024 Koushik Mondal (github.com/raptar231)
