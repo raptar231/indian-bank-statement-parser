@@ -30,7 +30,7 @@ header:
   license:
     spdx-id: Apache-2.0
     copyright-owner: Koushik Mondal (github.com/raptar231)
-    copyright-year: '2024-{{year}}'
+    copyright-year: '2024-2026'
 
   paths-ignore:
     - 'dist'
