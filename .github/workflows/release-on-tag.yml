@@ -24,7 +24,7 @@ jobs:
       - name: Read version from pyproject.toml
         id: extract
         run: |
-          VERSION=$(grep '^version = ' pyproject.toml | sed 's/version = "\(.*\)"/\1/')
+          VERSION=$(grep -m1 '^version = ' pyproject.toml | sed 's/version = "\(.*\)"/\1/')
           if [[ ! "$VERSION" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
             echo "Error: pyproject.toml version must be in format X.Y.Z (e.g., 0.1.0)"
             exit 1
