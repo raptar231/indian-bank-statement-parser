@@ -1,0 +1,88 @@
+# Copyright 2024 Koushik Mondal (github.com/raptar231)
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+name: "Auto-update Copyright Year"
+
+on:
+  schedule:
+    - cron: '0 0 1 1 *'  # Run on Jan 1st at midnight
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  pull-requests: write
+
+jobs:
+  update-year:
+    name: "Update Copyright Year"
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          persist-credentials: true
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Configure Git
+        run: |
+          git config --global user.name "github-actions[bot]"
+          git config --global user.email "github-actions[bot]@users.noreply.github.com"
+
+      - name: Get current year
+        id: year
+        run: echo "year=$(date +%Y)" >> $GITHUB_OUTPUT
+
+      - name: Update .licenserc.yaml
+        run: |
+          sed -i "s/copyright-year: '.*'/copyright-year: '2024-${{ steps.year.outputs.year }}'/" .licenserc.yaml
+          cat .licenserc.yaml | grep copyright-year
+
+      - name: Update license headers in source files
+        run: |
+          YEAR="${{ steps.year.outputs.year }}"
+          find bank_parser tests -name "*.py" -type f | while read file; do
+            # Update copyright year range in license headers
+            sed -i "s/# Copyright 2024 Koushik Mondal (github.com/raptar231)/# Copyright 2024-${YEAR} Koushik Mondal (github.com/raptar231)/" "$file"
+          done
+
+      - name: Check for changes
+        id: changes
+        run: |
+          if git diff --quiet; then
+            echo "changed=false" >> $GITHUB_OUTPUT
+            echo "No changes needed"
+          else
+            echo "changed=true" >> $GITHUB_OUTPUT
+            echo "Changes detected"
+            git diff --stat
+          fi
+
+      - name: Create Pull Request
+        if: steps.changes.outputs.changed == 'true'
+        uses: peter-evans/create-pull-request@v8
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          commit-message: "chore: update copyright year to ${{ steps.year.outputs.year }}"
+          title: "chore: update copyright year to ${{ steps.year.outputs.year }}"
+          body: |
+            Automated update of copyright year in license headers and configuration.
+            
+            Updated files:
+            - .licenserc.yaml
+            - Python source files in bank_parser/ and tests/
+          branch: update-copyright-year-${{ steps.year.outputs.year }}
+          base: master
+          labels: |
+            automated
+            maintenance

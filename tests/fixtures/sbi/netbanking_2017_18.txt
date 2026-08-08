@@ -1,0 +1,16 @@
+Account Name : Mr. SAMPLE USER
+Account Number : 0000001111111111
+Account Statement from 1 Apr 2017 to 31 Mar 2018
+Txn Date Value Description Ref No./Cheque Debit Credit Balance
+Date No.
+13 Oct 13 Oct BY TRANSFER- 7,500.00 10,298.02
+2017 2017 NEFT*HDFC0000240*N286170 387881124*ZERODHA NSE CLIE-
+1 Nov 2017 1 Nov 2017 ATM WDL-ATM CASH 5815 500.00 41,696.52 PEDEKAKANI, GUNTUR MANGALAGIRI-
+9 Nov 9 Nov TO TRANSFER-INB Idea 398.00 38,498.52
+2017 2017 IDEA_RECHARGE Paymen- JSBI5800496343I GACIPGSU8
+13 Dec 13 Dec TO TRANSFER-INB AMAZON- 295.00 1,454.52 / 2017 2017 szyrfG8E9BEfdEy v9wIGACNQPJJ9
+16 Dec 16 Dec BULK POSTING-ACHCr 12.50 10,310.52
+2017 2017
+Please do not share your ATM, Debit/Credit card number, PIN and OTP with anyone over mail, SMS, phone call or any other
+media. Bank never asks for such information.
+**This is a computer generated statement and does not require a signature.

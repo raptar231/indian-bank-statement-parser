@@ -1,0 +1,183 @@
+[build-system]
+requires = ["setuptools>=61.0", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "indian-bank-statement-parser"
+version = "0.1.0"
+description = "Parse Indian bank statement PDFs to structured CSV/JSON. Supports HDFC, ICICI, SBI, Axis."
+readme = "README.md"
+license = {text = "Apache-2.0"}
+requires-python = ">=3.10"
+authors = [
+    {name = "Koushik Mondal (github.com/raptar231)", email = "mondalsonu4@gmail.com"}
+]
+maintainers = [
+    {name = "Koushik Mondal (github.com/raptar231)", email = "mondalsonu4@gmail.com"}
+]
+keywords = ["bank", "statement", "parser", "indian", "pdf", "csv", "json", "gst", "gstr2a"]
+classifiers = [
+    "Development Status :: 4 - Beta",
+    "Intended Audience :: Financial and Insurance Industry",
+    "Intended Audience :: Developers",
+    "License :: OSI Approved :: Apache Software License",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
+    "Programming Language :: Python :: 3.14",
+    "Topic :: Office/Business :: Financial :: Accounting",
+]
+dependencies = [
+    "pdfplumber>=0.10.0",
+    "pymupdf>=1.23.0",
+    "pandas>=2.0.0",
+    "pydantic>=2.0.0",
+    "typer>=0.9.0",
+    "rich>=13.0.0",
+    "python-dateutil>=2.8.0",
+    "regex>=2023.0.0",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=7.0.0",
+    "pytest-cov>=4.0.0",
+    "black>=23.0.0",
+    "ruff>=0.1.0",
+    "mypy>=1.0.0",
+    "pre-commit>=3.0.0",
+]
+test = [
+    "pytest>=7.0.0",
+    "pytest-cov>=4.0.0",
+]
+lint = [
+    "black>=23.0.0",
+    "ruff>=0.1.0",
+    "mypy>=1.0.0",
+]
+docs = [
+    "mkdocs-material>=9.0.0",
+    "mkdocstrings[python]>=0.24.0",
+    "mike>=2.0.0",
+]
+
+[project.scripts]
+parse-bank-statements = "bank_parser.cli:app"
+
+[tool.setuptools.packages.find]
+where = ["."]
+include = ["bank_parser*"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+python_files = ["test_*.py"]
+python_classes = ["Test*"]
+python_functions = ["test_*"]
+addopts = "-v --strict-markers"
+
+[tool.ruff]
+line-length = 100
+target-version = "py310"
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "W", "UP", "B", "C4", "SIM", "T20"]
+ignore = ["E501", "SIM103", "B008"]
+
+[tool.black]
+line-length = 100
+target-version = ["py310"]
+
+[tool.mypy]
+python_version = "3.10"
+warn_return_any = true
+warn_unused_configs = true
+disallow_untyped_defs = true
+
+# numpy 2.5+ ships PEP 695 (type statement) stubs, which mypy can only parse
+# when targeting Python 3.12. Skip its stubs so numpy resolves as Any.
+[[tool.mypy.overrides]]
+module = ["numpy", "numpy.*"]
+follow_imports = "skip"
+follow_imports_for_stubs = true
+
+# Poetry compatibility (reads from [project] and [project.optional-dependencies])
+[tool.poetry]
+name = "indian-bank-statement-parser"
+version = "0.1.0"
+description = "Parse Indian bank statement PDFs to structured CSV/JSON."
+authors = ["Koushik Mondal <mondalsonu4@gmail.com>"]
+license = "Apache-2.0"
+readme = "README.md"
+repository = "https://github.com/raptar231/indian-bank-statement-parser"
+homepage = "https://github.com/raptar231/indian-bank-statement-parser"
+keywords = ["bank", "statement", "parser", "indian", "pdf", "csv", "json", "gst", "gstr2a"]
+classifiers = [
+    "Development Status :: 4 - Beta",
+    "Intended Audience :: Financial and Insurance Industry",
+    "Intended Audience :: Developers",
+    "License :: OSI Approved :: Apache Software License",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
+    "Programming Language :: Python :: 3.14",
+    "Topic :: Office/Business :: Financial :: Accounting",
+]
+
+[tool.poetry.group.dev.dependencies]
+pytest = ">=7.0.0"
+pytest-cov = ">=4.0.0"
+black = ">=23.0.0"
+ruff = ">=0.1.0"
+mypy = ">=1.0.0"
+pre-commit = ">=3.0.0"
+
+[tool.poetry.group.test.dependencies]
+pytest = ">=7.0.0"
+pytest-cov = ">=4.0.0"
+
+[tool.poetry.group.lint.dependencies]
+black = ">=23.0.0"
+ruff = ">=0.1.0"
+mypy = ">=1.0.0"
+
+[tool.poetry.group.docs.dependencies]
+mkdocs-material = ">=9.0.0"
+mkdocstrings = {extras = ["python"], version = ">=0.24.0"}
+mike = ">=2.0.0"
+
+# UV compatibility (uses [project] and [project.optional-dependencies] natively)
+[tool.uv]
+# Enable uv's fast resolver
+resolution = "highest"
+# Cache settings
+cache-dir = ".uv_cache"
+
+# Dependency groups (replaces deprecated dev-dependencies)
+[dependency-groups]
+dev = [
+    "pytest>=7.0.0",
+    "pytest-cov>=4.0.0",
+    "black>=23.0.0",
+    "ruff>=0.1.0",
+    "mypy>=1.0.0",
+    "pre-commit>=3.0.0",
+]
+test = [
+    "pytest>=7.0.0",
+    "pytest-cov>=4.0.0",
+]
+lint = [
+    "black>=23.0.0",
+    "ruff>=0.1.0",
+    "mypy>=1.0.0",
+]
+docs = [
+    "mkdocs-material>=9.0.0",
+    "mkdocstrings[python]>=0.24.0",
+    "mike>=2.0.0",
+]
