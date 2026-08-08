@@ -44,7 +44,7 @@ jobs:
             VERSION="${GITHUB_REF_NAME#v}"
             mike deploy --push --update-aliases "$VERSION" latest
           else
-            mike deploy --push latest
+            mike deploy --push --update-aliases "$GITHUB_REF_NAME" latest
           fi
 
       - name: Set default alias
