@@ -48,8 +48,8 @@ class SBIParser(BaseBankParser):
     bank_code = "sbi"
     bank_name = "State Bank of India"
 
-    def __init__(self, pdf_path: str, version: str | None = None):
-        super().__init__(pdf_path)
+    def __init__(self, pdf_path: str, version: str | None = None, password: str | None = None):
+        super().__init__(pdf_path, password=password)
         self._parser: SBIBaseParser | None = None
         self._version = version
 
@@ -57,13 +57,15 @@ class SBIParser(BaseBankParser):
         if self._parser is None:
             if self._version:
                 # Use specific version
-                self._parser = SBIParserRegistry.get_parser_by_version(self._version)(self.pdf_path)
+                self._parser = SBIParserRegistry.get_parser_by_version(self._version)(
+                    self.pdf_path, password=self.password
+                )
             else:
                 # Auto-detect
                 pages_text = self.extract_text()
                 full_text = "\n".join(pages_text)
                 parser_cls = SBIParserRegistry.detect(full_text)
-                self._parser = parser_cls(self.pdf_path)
+                self._parser = parser_cls(self.pdf_path, password=self.password)
         assert self._parser is not None
         return self._parser
 
@@ -88,7 +90,7 @@ class SBIParser(BaseBankParser):
 
         # Auto-detect credit card vs savings
         if self._looks_like_credit_card(full_text):
-            cc_parser = SBICreditCardParser(self.pdf_path)
+            cc_parser = SBICreditCardParser(self.pdf_path, password=self.password)
             return cc_parser._parse_statement(pages_text, full_text)
 
         parser = self._get_parser()

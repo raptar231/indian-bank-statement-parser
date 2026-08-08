@@ -99,7 +99,6 @@ def test_dbs_parser_instantiation():
 def test_detect_bank_resolves_all_fixtures():
     for fixture in sorted(FIXTURES_DIR.glob("*/*.txt")):
         text = fixture.read_text(encoding="utf-8")
-        assert detect_bank(text) == fixture.parent.name, (
-            f"{fixture.name} should be detected as {fixture.parent.name}, "
-            f"got {detect_bank(text)!r}"
-        )
+        assert (
+            detect_bank(text) == fixture.parent.name
+        ), f"{fixture.name} should be detected as {fixture.parent.name}, got {detect_bank(text)!r}"
