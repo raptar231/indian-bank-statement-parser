@@ -35,6 +35,89 @@ parse-bank-statements --input-file ./stmt.pdf --output-file ./out.csv --bank ici
 
 # GSTR-2A reconciliation
 parse-bank-statements --input-dir ./stmts --output-dir ./gstr2a --bank sbi --reconcile-gstr2a --gstin 29ABCDE1234F1Z5
+
+# Parse netbanking CSV/Excel exports (not PDFs)
+parse-bank-statements --input-file ./export.csv --bank hdfc --format xlsx --output-file ./out.xlsx --input-format csv
+parse-bank-statements --input-dir ./exports --bank icici --format yaml --input-format csv
+
+# Web UI / API server (http://localhost:8000)
+parse-bank-statements --serve
+```
+
+## Output Formats
+
+| Format | Flag | Description |
+|--------|------|-------------|
+| CSV | `--format csv` | Flat transaction rows (default) |
+| JSON | `--format json` | Structured JSON array |
+| Excel | `--format xlsx` | Multi-sheet workbook (Transactions + Summary) |
+| YAML | `--format yaml` | Human-readable YAML |
+| DataFrame | `--format dataframe` | In-memory pandas DataFrame (Python API) |
+
+**Excel workbook** includes:
+- `Transactions` sheet — all parsed transactions
+- `Summary` sheet — bank, account, period, balances, validation status
+
+**YAML output** is ideal for config pipelines and diffing.
+
+## Input Formats
+
+| Format | Flag | Description |
+|--------|------|-------------|
+| PDF | `--input-format pdf` | Bank statement PDFs (default) |
+| CSV | `--input-format csv` | Netbanking CSV exports |
+| Excel | `--input-format xlsx` | Netbanking Excel exports |
+
+```bash
+# Parse a directory of CSV exports
+parse-bank-statements --input-dir ./csv_exports --bank hdfc --format xlsx --output-dir ./parsed --input-format csv
+```
+
+## Web UI & API
+
+Run the same parsing engine as a web application with `--serve`:
+
+```bash
+parse-bank-statements --serve                 # http://localhost:8000 (binds 0.0.0.0)
+parse-bank-statements --serve --host 127.0.0.1 --port 9000
+```
+
+The built-in UI can upload a PDF and parse it, parse everything in the input
+directory, unlock password-protected PDFs, and run GSTR-2A reconciliation.
+The REST API (also browsable at `/docs`) exposes the same operations:
+
+| Endpoint | Purpose |
+|----------|---------|
+| `GET /api/banks` | List supported banks |
+| `GET /api/dirs` | Show the data directories in use |
+| `POST /api/parse` | Parse an uploaded PDF |
+| `GET /api/parse-dir` | Parse every PDF in the input directory |
+| `POST /api/unlock` | Unlock one or more uploaded PDFs sharing one password (multipart `files`) |
+| `POST /api/unlock-dir` | Unlock every PDF in the input directory with one password |
+| `GET /api/unlock.zip` | Download unlocked PDFs as a ZIP (comma-separated `files` query) |
+| `GET /api/download/{file}` | Download a generated file |
+
+The unlock UI accepts multiple files at once; unlocked PDFs are stored in both
+`data/output` and `data/unlocked` and can be downloaded individually or as a ZIP.
+
+Web server logs go to the same `logs.txt` (with password redaction) as the
+rest of the tool.
+
+### Data directories
+
+All file input/output flows through a `data` root:
+
+- On a normal machine: `./data` is created if missing, containing
+  `data/input`, `data/output` and `data/unlocked`.
+- In Docker: the root is `/data`, mounted as a volume (see below).
+- Override with the `BANK_PARSER_DATA_DIR` environment variable.
+
+Without `--input-dir`, the CLI falls back to `data/input`; `--unlock`
+writes to `data/unlocked` by default.
+
+```bash
+# Docker web server: mount a directory as /data
+docker run --rm -p 8000:8000 -v "$PWD:/data" ghcr.io/raptar231/indian-bank-statement-parser:latest --serve
 ```
 
 ## Why this exists

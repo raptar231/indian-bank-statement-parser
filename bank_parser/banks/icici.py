@@ -107,7 +107,7 @@ class ICICIParser(BaseBankParser):
         pages_text = self.extract_text()
         full_text = "\n".join(pages_text)
         if self._looks_like_credit_card(full_text):
-            cc_parser = ICICICreditCardParser(self.pdf_path)
+            cc_parser = ICICICreditCardParser(self.pdf_path, password=self.password)
             return cc_parser._parse_statement(pages_text, full_text)
         return self._parse_statement(pages_text, full_text)
 
