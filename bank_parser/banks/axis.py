@@ -95,7 +95,7 @@ class AxisParser(BaseBankParser):
         pages_text = self.extract_text()
         full_text = "\n".join(pages_text)
         if self._looks_like_credit_card(full_text):
-            cc_parser = AxisCreditCardParser(self.pdf_path)
+            cc_parser = AxisCreditCardParser(self.pdf_path, password=self.password)
             return cc_parser._parse_statement(pages_text, full_text)
         return self._parse_statement(pages_text, full_text)
 
@@ -160,6 +160,8 @@ class AxisParser(BaseBankParser):
     def _parse_transactions(self, pages_text: list[str]) -> list[Transaction]:
         transactions: list[Transaction] = []
         prev_balance: Decimal | None = None
+        # Buffer for narration lines that appear BEFORE their date line
+        pending_narration: list[str] = []
         for page_text in pages_text:
             block: list[str] = []
             for line in page_text.split("\n"):
@@ -171,6 +173,9 @@ class AxisParser(BaseBankParser):
                     prev_balance = self.parse_amount(opening_match.group(1))
                     continue
                 if AXIS_SUMMARY_RE.match(stripped) or SECTION_END_RE.search(stripped):
+                    if pending_narration:
+                        block.extend(pending_narration)
+                        pending_narration = []
                     txn = self._flush_block(block, prev_balance)
                     if txn:
                         transactions.append(txn)
@@ -179,17 +184,54 @@ class AxisParser(BaseBankParser):
                     continue
                 row_start = SAVINGS_ROW_RE.match(stripped)
                 if row_start:
+                    # Flush previous block
                     txn = self._flush_block(block, prev_balance)
                     if txn:
                         transactions.append(txn)
                         prev_balance = txn.balance
+                    # Start new block with date line
                     block = [stripped]
+                    # Add any pending narration AFTER the date line
+                    if pending_narration:
+                        block.extend(pending_narration)
+                        pending_narration = []
+                elif self._looks_like_pending_narration(stripped):
+                    # If we're in the middle of a transaction (block non-empty),
+                    # this is a continuation of the current transaction.
+                    # If block is empty (between transactions), it's pending for next.
+                    if block:
+                        block.append(stripped)
+                    else:
+                        pending_narration.append(stripped)
                 elif block:
                     block.append(stripped)
+            # End of page
+            if pending_narration:
+                block.extend(pending_narration)
+                pending_narration = []
             txn = self._flush_block(block, prev_balance)
             if txn:
                 transactions.append(txn)
         return transactions
+
+    def _looks_like_pending_narration(self, line: str) -> bool:
+        """Check if a line looks like a narration for the NEXT transaction.
+        These are lines without a date that describe the following transaction.
+        Common patterns: 'Int.Pd:...', 'Interest paid...', 'to 31-', 'to 30-', etc."""
+        if not line:
+            return False
+        # Skip lines that look like they belong to current transaction (continuation)
+        if re.match(r"^(?:UPI|NEFT|IMPS|ACH|RTGS|NACH|ECS|ATM|POS|CHQ)", line, re.IGNORECASE):
+            return False
+        # Lines that look like interest/narration for NEXT period
+        patterns = [
+            r"Int\.?\s*P[da]\b",  # Int.Pd, Int Paid, Interest Paid
+            r"Interest\s+(?:Paid|Received|Credit)",
+            r"to\s+\d{1,2}\s*-",  # "to 31-", "to 30-"
+            r"for\s+period\b",
+            r"SB[:]\s*\w+",  # "SB:XXXXXXXXXXXXXXX:..."
+        ]
+        return any(re.search(pat, line, re.IGNORECASE) for pat in patterns)
 
     def _flush_block(self, block: list[str], prev_balance: Decimal | None) -> Transaction | None:
         if not block:

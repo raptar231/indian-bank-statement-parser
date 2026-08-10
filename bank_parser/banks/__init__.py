@@ -129,7 +129,7 @@ def get_parser_class(bank_code: str, is_credit_card: bool = False) -> type[BaseB
     return None
 
 
-def auto_parse(pdf_path: str) -> Statement:
+def auto_parse(pdf_path: str, password: str | None = None) -> Statement:
     """Convenience function: auto-detect bank and parse.
 
     Usage:
@@ -139,7 +139,7 @@ def auto_parse(pdf_path: str) -> Statement:
     Auto-detects bank, then savings vs credit card, then format version.
     """
     # Use HDFC parser as base for text extraction (any parser works for extraction)
-    temp_parser = HDFCParser(pdf_path)
+    temp_parser = HDFCParser(pdf_path, password=password)
     pages_text = temp_parser.extract_text()
     full_text = "\n".join(pages_text)
 
@@ -153,7 +153,7 @@ def auto_parse(pdf_path: str) -> Statement:
         parser_class = BANK_PARSERS.get(bank_code)
         if parser_class and hasattr(parser_class, "_looks_like_credit_card"):
             # Create instance for credit card detection
-            parser_instance = parser_class(pdf_path)
+            parser_instance = parser_class(pdf_path, password=password)
             if parser_instance._looks_like_credit_card(full_text):  # type: ignore[union-attr]
                 return parser_instance.parse()
 
@@ -162,7 +162,7 @@ def auto_parse(pdf_path: str) -> Statement:
     if not parser_class:
         raise ValueError(f"No parser for bank: {bank_code}")
 
-    parser = parser_class(pdf_path)
+    parser = parser_class(pdf_path, password=password)
     return parser.parse()
 
 

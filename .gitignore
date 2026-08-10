@@ -68,6 +68,8 @@ dmypy.json
 # Project specific
 tests/fixtures/*.pdf
 *.log
+logs.txt
+data/
 
 # Docker
 .docker/
