@@ -167,7 +167,7 @@ ruff = ">=0.1.0"
 mypy = ">=1.0.0"
 
 [tool.poetry.group.docs.dependencies]
-mkdocs-material = ">=9.0.0"
+mkdocs-material = ">=9.7.7"
 mkdocstrings = {extras = ["python"], version = ">=0.24.0"}
 mike = ">=2.0.0"
 
