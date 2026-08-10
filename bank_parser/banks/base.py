@@ -27,8 +27,9 @@ class BaseBankParser(ABC):
     bank_code: str = ""
     bank_name: str = ""
 
-    def __init__(self, pdf_path: str):
+    def __init__(self, pdf_path: str, password: str | None = None):
         self.pdf_path = pdf_path
+        self.password = password
         self.statement = Statement(bank=self.bank_code)
 
     @abstractmethod
@@ -37,7 +38,7 @@ class BaseBankParser(ABC):
 
     def extract_text_pdfplumber(self) -> list[str]:
         pages_text = []
-        with pdfplumber.open(self.pdf_path) as pdf:
+        with pdfplumber.open(self.pdf_path, password=self.password) as pdf:
             for page in pdf.pages:
                 text = page.extract_text()
                 if text:
@@ -47,6 +48,8 @@ class BaseBankParser(ABC):
     def extract_text_pymupdf(self) -> list[str]:
         pages_text = []
         doc = pymupdf.open(self.pdf_path)
+        if self.password:
+            doc.authenticate(self.password)
         for i in range(doc.page_count):
             text = doc.load_page(i).get_text()
             if text:
