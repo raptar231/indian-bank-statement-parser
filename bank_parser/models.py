@@ -138,6 +138,133 @@ class Statement(BaseModel):
     def to_json(self, path: str | None = None, **kwargs: Any) -> str | None:
         return self.to_dataframe().to_json(path, **kwargs)  # type: ignore[no-any-return]
 
+    def to_excel(self, path: str | None = None, **kwargs: Any) -> bytes | None:
+        import openpyxl  # type: ignore[import-untyped]
+
+        df = self.to_dataframe()
+        wb = openpyxl.Workbook()
+
+        # Transactions sheet
+        ws_txn = wb.active
+        ws_txn.title = "Transactions"
+        for col_idx, col_name in enumerate(df.columns, 1):
+            ws_txn.cell(row=1, column=col_idx, value=col_name)
+        for row_idx, row in enumerate(df.itertuples(index=False), 2):
+            for col_idx, value in enumerate(row, 1):
+                ws_txn.cell(row=row_idx, column=col_idx, value=value)
+
+        # Summary sheet
+        ws_sum = wb.create_sheet("Summary")
+        ws_sum.cell(row=1, column=1, value="Field")
+        ws_sum.cell(row=1, column=2, value="Value")
+        summary_data = [
+            ("Bank", self.bank),
+            ("Account Number", self.account_number or ""),
+            ("Account Type", self.account_type or ""),
+            (
+                "Statement Period Start",
+                str(self.statement_period_start) if self.statement_period_start else "",
+            ),
+            (
+                "Statement Period End",
+                str(self.statement_period_end) if self.statement_period_end else "",
+            ),
+            ("Opening Balance", float(self.opening_balance) if self.opening_balance else ""),
+            ("Closing Balance", float(self.closing_balance) if self.closing_balance else ""),
+            ("Total Transactions", len(self.transactions)),
+            (
+                "Total Debits",
+                (
+                    float(self.validation.total_debits)
+                    if self.validation and self.validation.total_debits
+                    else ""
+                ),
+            ),
+            (
+                "Total Credits",
+                (
+                    float(self.validation.total_credits)
+                    if self.validation and self.validation.total_credits
+                    else ""
+                ),
+            ),
+            ("Validation Status", self.validation.status if self.validation else "N/A"),
+        ]
+        for row_idx, (field, value) in enumerate(summary_data, 2):
+            ws_sum.cell(row=row_idx, column=1, value=field)
+            ws_sum.cell(row=row_idx, column=2, value=value)
+
+        if path:
+            wb.save(path)
+            return None
+        else:
+            from io import BytesIO
+
+            bio = BytesIO()
+            wb.save(bio)
+            return bio.getvalue()
+
+    def to_yaml(self, path: str | None = None, **kwargs: Any) -> str | None:
+        import yaml  # type: ignore[import-untyped]
+
+        data = {
+            "bank": self.bank,
+            "account_number": self.account_number,
+            "account_type": self.account_type,
+            "statement_period_start": (
+                str(self.statement_period_start) if self.statement_period_start else None
+            ),
+            "statement_period_end": (
+                str(self.statement_period_end) if self.statement_period_end else None
+            ),
+            "opening_balance": float(self.opening_balance) if self.opening_balance else None,
+            "closing_balance": float(self.closing_balance) if self.closing_balance else None,
+            "transactions": [t.to_dict() for t in self.transactions],
+            "validation": (
+                {
+                    "ok": self.validation.ok if self.validation else False,
+                    "status": self.validation.status if self.validation else "N/A",
+                    "reason": self.validation.reason if self.validation else None,
+                    "expected_closing": (
+                        float(self.validation.expected_closing)
+                        if self.validation and self.validation.expected_closing
+                        else None
+                    ),
+                    "calculated_closing": (
+                        float(self.validation.calculated_closing)
+                        if self.validation and self.validation.calculated_closing
+                        else None
+                    ),
+                    "difference": (
+                        float(self.validation.difference)
+                        if self.validation and self.validation.difference
+                        else None
+                    ),
+                    "total_debits": (
+                        float(self.validation.total_debits)
+                        if self.validation and self.validation.total_debits
+                        else None
+                    ),
+                    "total_credits": (
+                        float(self.validation.total_credits)
+                        if self.validation and self.validation.total_credits
+                        else None
+                    ),
+                }
+                if self.validation
+                else None
+            ),
+        }
+
+        yaml_str: str = yaml.dump(data, default_flow_style=False, sort_keys=False)
+
+        if path:
+            with open(path, "w") as f:
+                f.write(yaml_str)
+            return None
+        else:
+            return yaml_str
+
 
 class GSTR2AEntry(BaseModel):
     gstin: str

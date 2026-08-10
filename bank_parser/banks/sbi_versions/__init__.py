@@ -276,6 +276,7 @@ class SBIParserRegistry:
         from bank_parser.banks.sbi_versions.v2019_c import SBIParser2019C
         from bank_parser.banks.sbi_versions.v2021_d import SBIParser2021D
         from bank_parser.banks.sbi_versions.v2023_e import SBIParser2023E
+        from bank_parser.banks.sbi_versions.v2025_f import SBIParser2025F
 
         for parser_cls in (
             SBIParser2016A,
@@ -283,6 +284,7 @@ class SBIParserRegistry:
             SBIParser2019C,
             SBIParser2021D,
             SBIParser2023E,
+            SBIParser2025F,
         ):
             cls.register(parser_cls)
         cls._initialized = True

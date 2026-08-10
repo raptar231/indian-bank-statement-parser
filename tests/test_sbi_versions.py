@@ -21,6 +21,7 @@ from bank_parser.banks.sbi_versions import SBIParserRegistry
 from bank_parser.banks.sbi_versions.v2017_b import SBIParser2017B
 from bank_parser.banks.sbi_versions.v2021_d import SBIParser2021D
 from bank_parser.banks.sbi_versions.v2023_e import SBIParser2023E
+from bank_parser.banks.sbi_versions.v2025_f import SBIParser2025F
 
 FIXTURES_DIR = Path(__file__).parent / "fixtures" / "sbi"
 
@@ -280,3 +281,155 @@ def test_sbi_credit_card_parser_overrides_parse():
     # auto-detect path (which routes credit-card text back here) can
     # never re-enter itself and recurse.
     assert "parse" in SBICreditCardParser.__dict__
+
+
+# ---------------------------------------------------------------------------
+# Statement of Account layout (2025F)
+# ---------------------------------------------------------------------------
+
+
+def test_detect_statement_of_account():
+    text, _ = _load("statement_of_account_fy_25_26.txt")
+    assert SBIParserRegistry.detect(text).version == "2025F"
+
+
+def test_statement_of_account_transactions():
+    parser = SBIParser2025F("")
+
+    # Mock table rows as returned by pdfplumber extract_table()
+    mock_table = [
+        ["", "", "", "", "", "", "Balance"],
+        [
+            "01/04/2025",
+            "01/04/2025",
+            "DEP TFR INB Gift to relatives /\nFriends 0038570074516 OF Mrs.\nRITA MONDAL AT 06693\nASANSOL BAZAR",
+            "-",
+            "-",
+            "1,50,000.00",
+            "1,82,943.63",
+        ],
+        [
+            "01/04/2025",
+            "01/04/2025",
+            "WDL TFR INB Deposit /\nInvestment 0038077015315 OF\nMr. KOUSHIK MONDAL AT 06693\nASANSOL BAZAR",
+            "-",
+            "1,50,000.00",
+            "-",
+            "32,943.63",
+        ],
+        [
+            "04/04/2025",
+            "04/04/2025",
+            "WDL TFR\nUPI/DR/794340338944/KOLACHIN\n/BARB/lakshmi.ko/Rent\n0097695162091 AT 06693\nASANSOL BAZAR",
+            "-",
+            "24,000.00",
+            "-",
+            "8,943.63",
+        ],
+        [
+            "04/04/2025",
+            "04/04/2025",
+            "WDL TFR\nUPI/DR/908786602656/ANIL\nBAB/ICIC/8886518000/Main\n0097695162091 AT 06693\nASANSOL BAZAR",
+            "-",
+            "1,500.00",
+            "-",
+            "7,443.63",
+        ],
+        [
+            "04/04/2025",
+            "04/04/2025",
+            "WDL TFR\nUPI/DR/973184015727/CHETAN\nP/YESB/paytmqr65h/Paym\n0097695162091 AT 06693\nASANSOL BAZAR",
+            "-",
+            "41.00",
+            "-",
+            "7,402.63",
+        ],
+        ["", "", "", "", "", "", ""],
+        ["", "", "", "", "", "", "Balance"],
+        [
+            "25/06/2025",
+            "25/06/2025",
+            "INTEREST CREDIT",
+            "-",
+            "-",
+            "43.00",
+            "3,288.63",
+        ],
+        ["", "", "", "", "", "", ""],
+        ["", "", "", "", "", "", "Balance"],
+        [
+            "01/07/2025",
+            "01/07/2025",
+            "WDL TFR\nUPI/DR/908107624438/KOLACHIN\n/BARB/lakshmi.ko/Rent\n0097692162094 AT 06693\nASANSOL BAZAR",
+            "-",
+            "24,000.00",
+            "-",
+            "5,288.63",
+        ],
+        [
+            "01/07/2025",
+            "01/07/2025",
+            "DEP TFR\nUPI/CR/813130461754/KOUSHIK\n/ICIC/9563493855/Paym\n0097734162099 AT 06693\nASANSOL BAZAR",
+            "-",
+            "-",
+            "26,000.00",
+            "29,288.63",
+        ],
+        ["", "", "", "", "", "", ""],
+    ]
+
+    txns = parser._parse_table_rows(mock_table)
+    assert len(txns) == 8
+
+    assert txns[0].date == date(2025, 4, 1)
+    assert txns[0].credit == Decimal("150000.00")
+    assert txns[0].debit is None
+    assert txns[0].balance == Decimal("182943.63")
+    assert "Gift to relatives" in txns[0].description
+    assert "RITA MONDAL" in txns[0].description
+    assert txns[0].category == "credit"
+
+    assert txns[1].date == date(2025, 4, 1)
+    assert txns[1].debit == Decimal("150000.00")
+    assert txns[1].credit is None
+    assert txns[1].balance == Decimal("32943.63")
+    assert "Investment" in txns[1].description
+    assert txns[1].category == "debit"
+
+    assert txns[2].date == date(2025, 4, 4)
+    assert txns[2].debit == Decimal("24000.00")
+    assert "UPI/DR/794340338944/KOLACHIN" in txns[2].description
+    assert txns[2].category == "debit"
+
+    assert txns[3].date == date(2025, 4, 4)
+    assert txns[3].debit == Decimal("1500.00")
+    assert "UPI/DR/908786602656/ANIL" in txns[3].description
+    assert txns[3].category == "debit"
+
+    assert txns[4].date == date(2025, 4, 4)
+    assert txns[4].debit == Decimal("41.00")
+    assert "UPI/DR/973184015727/CHETAN" in txns[4].description
+    assert txns[4].category == "debit"
+
+    assert txns[5].date == date(2025, 6, 25)
+    assert txns[5].credit == Decimal("43.00")
+    assert txns[5].description == "INTEREST CREDIT"
+    assert txns[5].category == "credit"
+
+    assert txns[6].date == date(2025, 7, 1)
+    assert txns[6].debit == Decimal("24000.00")
+    assert "UPI/DR/908107624438/KOLACHIN" in txns[6].description
+    assert txns[6].category == "debit"
+
+    assert txns[7].date == date(2025, 7, 1)
+    assert txns[7].credit == Decimal("26000.00")
+    assert "UPI/CR/813130461754/KOUSHIK" in txns[7].description
+    assert txns[7].category == "credit"
+
+
+def test_statement_of_account_metadata():
+    parser = SBIParser2025F("")
+    text, _ = _load("statement_of_account_fy_25_26.txt")
+    assert parser._extract_account_number(text) == "11111111111"
+    assert parser._extract_account_type(text) == "Savings"
+    assert parser.detect_statement_period(text) == (date(2025, 4, 1), date(2026, 3, 31))

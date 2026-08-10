@@ -12,11 +12,70 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+import re
 from decimal import Decimal
 
 import pandas as pd  # type: ignore[import-untyped]
 
 from bank_parser.models import GSTR2AEntry, Statement, Transaction
+
+# GST rate detection from narration/description
+# Common patterns in Indian bank statements:
+# - "GST @18%", "GST@18%", "GST 18%"
+# - "*18%", "*5%", "*12%", "*28%"
+# - "GST: 18", "GST:5"
+# - Invoice suffixes like "/18", "/5", "/12", "/28"
+# - UPI narration often has "GST" keyword with rate
+
+GST_RATE_PATTERNS = [
+    # GST @X% or GST@X% or GST X%
+    (r"GST\s*[@:]?\s*(\d{1,2})\s*%", re.IGNORECASE),
+    # *X%  (common in UPI/merchant descriptions)
+    (r"\*(\d{1,2})\s*%", re.IGNORECASE),
+    # GST: X  (without %)
+    (r"GST\s*:\s*(\d{1,2})\b", re.IGNORECASE),
+    # /X at end of invoice/ref (e.g. INV123/18)
+    (r"/(\d{1,2})(?:\s|$)", re.IGNORECASE),
+    # CGST/SGST/IGST X%
+    (r"(?:C|S|I)?GST\s*(\d{1,2})\s*%", re.IGNORECASE),
+]
+
+VALID_GST_RATES = {5, 12, 18, 28, 0}  # 0 for exempt/nil
+
+DEFAULT_GST_RATE = 18
+
+
+def detect_gst_rate(narration: str) -> int:
+    """Detect GST rate from transaction narration/description.
+
+    Returns the detected rate (5, 12, 18, 28) or DEFAULT_GST_RATE (18) if not found.
+    """
+    if not narration:
+        return DEFAULT_GST_RATE
+
+    text = narration.upper()
+
+    for pattern, flags in GST_RATE_PATTERNS:
+        matches = re.findall(pattern, text, flags)
+        for match in matches:
+            try:
+                rate = int(match)
+                if rate in VALID_GST_RATES:
+                    return rate
+            except ValueError:
+                continue
+
+    return DEFAULT_GST_RATE
+
+
+def calculate_taxable_and_igst(invoice_value: Decimal, rate: int) -> tuple[Decimal, Decimal]:
+    """Calculate taxable value and IGST from invoice value and GST rate."""
+    if rate == 0:
+        return invoice_value, Decimal("0")
+    multiplier = Decimal("1") + Decimal(str(rate)) / Decimal("100")
+    taxable_value = invoice_value / multiplier
+    igst = invoice_value - taxable_value
+    return taxable_value, igst
 
 
 def generate_gstr2a(statement: Statement, gstin: str) -> "pd.DataFrame":
@@ -24,8 +83,8 @@ def generate_gstr2a(statement: Statement, gstin: str) -> "pd.DataFrame":
 
     for txn in statement.transactions:
         if txn.category == "credit" and txn.credit:
-            taxable_value = txn.credit / Decimal("1.18")
-            igst = txn.credit - taxable_value
+            rate = detect_gst_rate(txn.description)
+            taxable_value, igst = calculate_taxable_and_igst(txn.credit, rate)
 
             entry = GSTR2AEntry(
                 gstin=gstin,
@@ -33,7 +92,7 @@ def generate_gstr2a(statement: Statement, gstin: str) -> "pd.DataFrame":
                 invoice_number=txn.ref_no or f"TXN{txn.date.strftime('%Y%m%d')}",
                 invoice_value=txn.credit,
                 place_of_supply="29",
-                rate=Decimal("18"),
+                rate=Decimal(str(rate)),
                 taxable_value=taxable_value,
                 igst=igst,
             )
@@ -49,8 +108,8 @@ def generate_gstr2a_from_transactions(
 
     for txn in transactions:
         if txn.category == "credit" and txn.credit:
-            taxable_value = txn.credit / Decimal("1.18")
-            igst = txn.credit - taxable_value
+            rate = detect_gst_rate(txn.description)
+            taxable_value, igst = calculate_taxable_and_igst(txn.credit, rate)
 
             entry = GSTR2AEntry(
                 gstin=gstin,
@@ -58,7 +117,7 @@ def generate_gstr2a_from_transactions(
                 invoice_number=txn.ref_no or f"TXN{txn.date.strftime('%Y%m%d')}",
                 invoice_value=txn.credit,
                 place_of_supply="29",
-                rate=Decimal("18"),
+                rate=Decimal(str(rate)),
                 taxable_value=taxable_value,
                 igst=igst,
             )
