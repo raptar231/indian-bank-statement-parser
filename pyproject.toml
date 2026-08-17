@@ -59,7 +59,7 @@ dev = [
     "pytest>=7.0.0",
     "pytest-cov>=4.0.0",
     "black>=23.0.0",
-    "ruff>=0.1.0",
+    "ruff>=0.16.3",
     "mypy>=1.0.0",
     "pre-commit>=3.0.0",
 ]
@@ -146,7 +146,7 @@ classifiers = [
 pytest = ">=7.0.0"
 pytest-cov = ">=4.0.0"
 black = ">=23.0.0"
-ruff = ">=0.1.0"
+ruff = ">=0.16.3"
 mypy = ">=1.0.0"
 pre-commit = ">=3.0.0"
 
